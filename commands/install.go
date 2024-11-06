@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-func Install(args []string) {
+func Install(conf *common.Config, args []string) {
 	if len(args) < 2 {
 		theme.Error("You must specify a version to install.")
 		return
@@ -136,22 +136,11 @@ func Install(args []string) {
 
 	fmt.Printf("Installing PHP %s\n", desiredVersion)
 
-	homeDir, err := os.UserHomeDir()
-
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	// check if .pvm folder exists
-	if _, err := os.Stat(homeDir + "/.pvm"); os.IsNotExist(err) {
-		theme.Info("Creating .pvm folder in home directory")
-		os.Mkdir(homeDir+"/.pvm", 0755)
-	}
 
 	// check if .pvm/versions folder exists
-	if _, err := os.Stat(homeDir + "/.pvm/versions"); os.IsNotExist(err) {
-		theme.Info("Creating .pvm/versions folder in home directory")
-		os.Mkdir(homeDir+"/.pvm/versions", 0755)
+	if _, err := os.Stat(conf.PVM_VERSIONS_PATH); os.IsNotExist(err) {
+		theme.Info(fmt.Sprintf("Creating %s folder", conf.PVM_VERSIONS_PATH))
+		os.Mkdir(conf.PVM_VERSIONS_PATH, 0755)
 	}
 
 	theme.Info("Downloading")
@@ -166,15 +155,16 @@ func Install(args []string) {
 
 	// zip filename from url
 	zipFileName := strings.Split(desiredVersion.Url, "/")[len(strings.Split(desiredVersion.Url, "/"))-1]
+    fullZipFilePath := filepath.Join(conf.PVM_VERSIONS_PATH, zipFileName)
 
 	// check if zip already exists
-	if _, err := os.Stat(homeDir + "/.pvm/versions/" + zipFileName); err == nil {
+	if _, err := os.Stat(fullZipFilePath); err == nil {
 		theme.Error(fmt.Sprintf("PHP %s already exists", desiredVersion))
 		return
 	}
 
 	// Create the file
-	out, err := os.Create(homeDir + "/.pvm/versions/" + zipFileName)
+	out, err := os.Create(fullZipFilePath)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -192,11 +182,12 @@ func Install(args []string) {
 
 	// extract the zip file to a folder
 	theme.Info("Unzipping")
-	Unzip(homeDir+"/.pvm/versions/"+zipFileName, homeDir+"/.pvm/versions/"+strings.Replace(zipFileName, ".zip", "", -1))
+
+	Unzip(fullZipFilePath, strings.Replace(fullZipFilePath, ".zip", "", -1))
 
 	// remove the zip file
 	theme.Info("Cleaning up")
-	err = os.Remove(homeDir + "/.pvm/versions/" + zipFileName)
+	err = os.Remove(fullZipFilePath)
 	if err != nil {
 		log.Fatalln(err)
 	}

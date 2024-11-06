@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func Use(args []string) {
+func Use(conf *common.Config, args []string) {
 	threadSafe := true
 
 	if len(args) < 1 {
@@ -25,33 +25,15 @@ func Use(args []string) {
 		}
 	}
 
-	// get users home dir
-	homeDir, err := os.UserHomeDir()
-
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	// check if .pvm folder exists
-	if _, err := os.Stat(filepath.Join(homeDir, ".pvm")); os.IsNotExist(err) {
-		theme.Error("No PHP versions installed")
-		return
-	}
 
 	// check if .pvm/versions folder exists
-	if _, err := os.Stat(filepath.Join(homeDir, ".pvm", "versions")); os.IsNotExist(err) {
+	if _, err := os.Stat(conf.PVM_VERSIONS_PATH); os.IsNotExist(err) {
 		theme.Error("No PHP versions installed")
 		return
-	}
-
-	// check if .pvm/bin folder exists
-	binPath := filepath.Join(homeDir, ".pvm", "bin")
-	if _, err := os.Stat(binPath); os.IsNotExist(err) {
-		os.Mkdir(binPath, 0755)
 	}
 
 	// get all folders in .pvm/versions
-	versions, err := os.ReadDir(filepath.Join(homeDir, ".pvm", "versions"))
+	versions, err := os.ReadDir(conf.PVM_VERSIONS_PATH)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -84,6 +66,8 @@ func Use(args []string) {
 		theme.Warning(fmt.Sprintf("No patch version specified, assumed newest patch version %s.", selectedVersion.number.String()))
 	}
 
+    binPath := filepath.Dir(conf.PVM_PATH)
+
 	// remove old php bat script
 	batPath := filepath.Join(binPath, "php.bat")
 	if _, err := os.Stat(batPath); err == nil {
@@ -108,7 +92,7 @@ func Use(args []string) {
 		os.Remove(shPathCGI)
 	}
 
-	versionFolderPath := filepath.Join(homeDir, ".pvm", "versions", selectedVersion.folder.Name())
+	versionFolderPath := filepath.Join(conf.PVM_VERSIONS_PATH, selectedVersion.folder.Name())
 	versionPath := filepath.Join(versionFolderPath, "php.exe")
 	versionPathCGI := filepath.Join(versionFolderPath, "php-cgi.exe")
 
